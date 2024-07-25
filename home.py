@@ -5,7 +5,7 @@ import seaborn as sns
 import plotly.express as px
 
 # Função para carregar os dados
-@st.cache
+@st.cache_data
 def load_data():
     data = pd.read_csv('final_lead_scores.csv')  # Substitua pelo caminho do seu arquivo CSV
     return data
