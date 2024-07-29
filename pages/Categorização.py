@@ -32,43 +32,25 @@ st.title("Análise de Qualidade dos Leads")
 lead_counts = data['Qualidade'].value_counts().reset_index()
 lead_counts.columns = ['Qualidade', 'Contagem']
 
-# Gráfico de Barras - Contagem de Leads por Qualidade
-st.header("Contagem de Leads por Qualidade")
-fig_bar = px.bar(lead_counts, x='Qualidade', y='Contagem', color='Qualidade', title='Contagem de Leads por Qualidade')
-st.plotly_chart(fig_bar)
+
 
 # Gráfico de Pizza - Distribuição de Leads por Qualidade
 st.header("Distribuição de Leads por Qualidade")
 fig_pie = px.pie(lead_counts, values='Contagem', names='Qualidade', title="Distribuição de Leads por Qualidade")
 st.plotly_chart(fig_pie)
 
-# Média de Score por Qualidade
-st.header("Média de Score por Qualidade")
-average_score = data.groupby('Qualidade')['lead_score'].mean().reset_index()
-fig_bar_avg = px.bar(average_score, x='Qualidade', y='lead_score', color='Qualidade', title='Média de Score por Qualidade')
-st.plotly_chart(fig_bar_avg)
-
-# Gráfico de Dispersão de Score por Categoria
-st.header("Dispersão de Scores por Categoria")
-fig_scatter = px.scatter(data, x='Qualidade', y='lead_score', color='Qualidade', title='Dispersão de Scores por Categoria')
-st.plotly_chart(fig_scatter)
-
-
-# Box Plot Interativo
-st.header("Distribuição dos Scores por Qualidade")
-fig_box = px.box(data, x='Qualidade', y='lead_score', color='Qualidade', title='Distribuição dos Scores por Qualidade')
-st.plotly_chart(fig_box)
-
-
-
 # Gráfico de Barras Empilhado para Criativos e Contagem de Leads
 st.header("Análise dos Criativos e Contagem de Leads")
 
-# Contar o número de leads por criativo e qualidade
+
+
+# Assumindo que `data` é o seu DataFrame original
 creative_scores = data.groupby(['data.ad_name', 'Qualidade']).size().reset_index(name='Contagem')
 
 # Seletor para número de anúncios
 num_ads = st.slider('Selecione o número de anúncios para visualizar', min_value=1, max_value=len(creative_scores['data.ad_name'].unique()), value=5)
+
+st.write("(Foi usado o critério do número de leads por anúncio para a ordem de exibição no gráfico).")
 
 # Filtrando os anúncios com mais contagens
 top_creatives = creative_scores.groupby('data.ad_name').sum().nlargest(num_ads, 'Contagem').index
@@ -76,6 +58,11 @@ creative_scores = creative_scores[creative_scores['data.ad_name'].isin(top_creat
 
 # Normalizando as contagens para percentual
 creative_scores['Percentual'] = creative_scores.groupby('data.ad_name')['Contagem'].transform(lambda x: x / x.sum() * 100)
+
+# Ordenando criativos por contagem total (de maior para menor)
+ordered_creatives = creative_scores.groupby('data.ad_name').sum().sort_values('Contagem', ascending=True).index
+creative_scores['data.ad_name'] = pd.Categorical(creative_scores['data.ad_name'], categories=ordered_creatives, ordered=True)
+creative_scores = creative_scores.sort_values('data.ad_name')
 
 # Definindo o esquema de cores e a ordem das categorias
 colors = {
@@ -108,29 +95,6 @@ fig_creative.update_layout(legend=dict(x=1, y=1))
 st.plotly_chart(fig_creative)
 
 
-
-
-# Garantir a ordem das categorias
-category_order = ['Desqualificado', 'Baixa', 'Média', 'Alta']
-
-# Gráfico de barras horizontal empilhado
-fig_creative = px.bar(creative_scores, y='data.ad_name', x='Percentual', color='Qualidade', orientation='h',
-                      title='Análise dos Criativos e Contagem de Leads', color_discrete_map=colors, 
-                      labels={'Percentual': 'Percentual de Leads', 'data.ad_name': 'Criativo'},
-                      category_orders={'Qualidade': category_order},
-                      text='Contagem')
-
-# Ajustando o eixo x para ir de 0 a 100%
-fig_creative.update_layout(xaxis=dict(range=[0, 100]))
-
-# Atualizar as barras para remover os textos das barras
-fig_creative.update_traces(texttemplate='', textposition='none', 
-                           selector=dict(type='bar'))
-
-# Atualizar o layout para posicionar a legenda fora das barras
-fig_creative.update_layout(legend=dict(x=1, y=1))
-
-st.plotly_chart(fig_creative)
 
 # Seletor de Criativos para Comparação
 st.header("Comparação de Criativos")
