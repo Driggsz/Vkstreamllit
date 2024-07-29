@@ -53,17 +53,6 @@ st.header("Dispersão de Scores por Categoria")
 fig_scatter = px.scatter(data, x='Qualidade', y='lead_score', color='Qualidade', title='Dispersão de Scores por Categoria')
 st.plotly_chart(fig_scatter)
 
-# Evolução Temporal dos Scores Médios (caso tenha uma coluna de data)
-if 'date' in data.columns:
-    st.header("Evolução Temporal dos Scores Médios")
-    data['date'] = pd.to_datetime(data['date'])  # Substitua 'date' pelo nome da coluna que contém as datas
-    data.set_index('date', inplace=True)
-    monthly_scores = data.resample('M')['lead_score'].mean().reset_index()
-
-    fig_line = px.line(monthly_scores, x='date', y='lead_score', title='Evolução Temporal dos Scores Médios')
-    st.plotly_chart(fig_line)
-
-
 
 # Box Plot Interativo
 st.header("Distribuição dos Scores por Qualidade")
@@ -72,5 +61,110 @@ st.plotly_chart(fig_box)
 
 
 
+# Gráfico de Barras Empilhado para Criativos e Contagem de Leads
+st.header("Análise dos Criativos e Contagem de Leads")
+
+# Contar o número de leads por criativo e qualidade
+creative_scores = data.groupby(['data.ad_name', 'Qualidade']).size().reset_index(name='Contagem')
+
+# Seletor para número de anúncios
+num_ads = st.slider('Selecione o número de anúncios para visualizar', min_value=1, max_value=len(creative_scores['data.ad_name'].unique()), value=5)
+
+# Filtrando os anúncios com mais contagens
+top_creatives = creative_scores.groupby('data.ad_name').sum().nlargest(num_ads, 'Contagem').index
+creative_scores = creative_scores[creative_scores['data.ad_name'].isin(top_creatives)]
+
+# Normalizando as contagens para percentual
+creative_scores['Percentual'] = creative_scores.groupby('data.ad_name')['Contagem'].transform(lambda x: x / x.sum() * 100)
+
+# Definindo o esquema de cores e a ordem das categorias
+colors = {
+    'Desqualificado': '#000000',
+    'Baixa': '#EE4266',
+    'Média': '#FFD23F',
+    'Alta': '#337357'
+}
+
+# Garantir a ordem das categorias
+category_order = ['Desqualificado', 'Baixa', 'Média', 'Alta']
+
+# Gráfico de barras horizontal empilhado
+fig_creative = px.bar(creative_scores, y='data.ad_name', x='Percentual', color='Qualidade', orientation='h',
+                      title='Análise dos Criativos e Contagem de Leads', color_discrete_map=colors, 
+                      labels={'Percentual': 'Percentual de Leads', 'data.ad_name': 'Criativo'},
+                      category_orders={'Qualidade': category_order},
+                      text='Contagem')
+
+# Ajustando o eixo x para ir de 0 a 100%
+fig_creative.update_layout(xaxis=dict(range=[0, 100]))
+
+# Atualizar as barras para remover os textos das barras
+fig_creative.update_traces(texttemplate='', textposition='none', 
+                           selector=dict(type='bar'))
+
+# Atualizar o layout para posicionar a legenda fora das barras
+fig_creative.update_layout(legend=dict(x=1, y=1))
+
+st.plotly_chart(fig_creative)
 
 
+
+
+# Garantir a ordem das categorias
+category_order = ['Desqualificado', 'Baixa', 'Média', 'Alta']
+
+# Gráfico de barras horizontal empilhado
+fig_creative = px.bar(creative_scores, y='data.ad_name', x='Percentual', color='Qualidade', orientation='h',
+                      title='Análise dos Criativos e Contagem de Leads', color_discrete_map=colors, 
+                      labels={'Percentual': 'Percentual de Leads', 'data.ad_name': 'Criativo'},
+                      category_orders={'Qualidade': category_order},
+                      text='Contagem')
+
+# Ajustando o eixo x para ir de 0 a 100%
+fig_creative.update_layout(xaxis=dict(range=[0, 100]))
+
+# Atualizar as barras para remover os textos das barras
+fig_creative.update_traces(texttemplate='', textposition='none', 
+                           selector=dict(type='bar'))
+
+# Atualizar o layout para posicionar a legenda fora das barras
+fig_creative.update_layout(legend=dict(x=1, y=1))
+
+st.plotly_chart(fig_creative)
+
+# Seletor de Criativos para Comparação
+st.header("Comparação de Criativos")
+
+# Obter a lista de criativos
+creatives_list = data['data.ad_name'].unique()
+
+# Seletor múltiplo para escolher criativos para comparação
+selected_creatives = st.multiselect('Selecione os criativos para comparação', options=creatives_list, default=creatives_list[:1])
+
+# Filtrando os dados para os criativos selecionados
+comparison_data = data[data['data.ad_name'].isin(selected_creatives)]
+
+# Contar o número de leads por criativo e qualidade
+comparison_scores = comparison_data.groupby(['data.ad_name', 'Qualidade']).size().reset_index(name='Contagem')
+
+# Normalizando as contagens para percentual
+comparison_scores['Percentual'] = comparison_scores.groupby('data.ad_name')['Contagem'].transform(lambda x: x / x.sum() * 100)
+
+# Gráfico de barras horizontal empilhado para comparação
+fig_comparison = px.bar(comparison_scores, y='data.ad_name', x='Percentual', color='Qualidade', orientation='h',
+                       title='Comparação de Criativos', color_discrete_map=colors, 
+                       labels={'Percentual': 'Percentual de Leads', 'data.ad_name': 'Criativo'},
+                       category_orders={'Qualidade': category_order},
+                       text='Contagem')
+
+# Ajustando o eixo x para ir de 0 a 100%
+fig_comparison.update_layout(xaxis=dict(range=[0, 100]))
+
+# Atualizar as barras para remover os textos das barras
+fig_comparison.update_traces(texttemplate='', textposition='none', 
+                             selector=dict(type='bar'))
+
+# Atualizar o layout para posicionar a legenda fora das barras
+fig_comparison.update_layout(legend=dict(x=1, y=1))
+
+st.plotly_chart(fig_comparison)
